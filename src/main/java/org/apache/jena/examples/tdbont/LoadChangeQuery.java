@@ -5,6 +5,7 @@ import org.apache.jena.query.*;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.tdb.TDB;
 import org.apache.jena.tdb.TDBFactory;
 import org.apache.jena.update.*;
 
@@ -14,9 +15,12 @@ import org.apache.jena.update.*;
 public class LoadChangeQuery {
 
   public static void main(String[] args) {
+
+    //TDB.getContext().set( TDB.symUnionDefaultGraph, true );
     //Location location = "target/tdb2" ;
     String directory = "target/tdb";
     Dataset dataset = TDBFactory.createDataset(directory);
+
     dataset.begin(ReadWrite.WRITE);
 
     try
@@ -39,6 +43,15 @@ public class LoadChangeQuery {
         QueryExecution qExec = QueryExecutionFactory.create(
           "SELECT (count(*) AS ?count) { ?s ?p ?o} LIMIT 10",
           dataset))
+      {
+        ResultSet rs = qExec.execSelect();
+        ResultSetFormatter.out(rs);
+      }
+
+      try (
+        QueryExecution qExec = QueryExecutionFactory.create(
+                "SELECT ?s ?p ?o { ?s ?p ?o} LIMIT 100",
+                dataset))
       {
         ResultSet rs = qExec.execSelect();
         ResultSetFormatter.out(rs);

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License. You may obtain a copy of the License at
- *
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -20,11 +20,13 @@
 package org.apache.jena.examples.tdbont;
 
 import org.apache.jena.atlas.lib.StrUtils;
+import org.apache.jena.ontology.Individual;
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.OntModelSpec;
 import org.apache.jena.query.*;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.tdb.TDB;
 import org.apache.jena.tdb.TDBFactory;
@@ -50,23 +52,22 @@ public final class LoadAndQuery {
     public static final String DEFAULT_GRAPH = "urn:x-arq:DefaultGraph";
 
     public static void main(String[] args) {
-        // the base dataset
-        TDB.getContext().set( TDB.symUnionDefaultGraph, true );
+        // the base dataset if assemble file(tbd-assembler.ttl) not used
+        //TDB.getContext().set( TDB.symUnionDefaultGraph, true );
         Dataset dataset;
-        //Dataset datasetFromAssembler = TDBFactory.assembleDataset(STORE_ASSEMBLER) ;
 
         OntModel model = null;
-        if(USE_TDB_ASSEMBLER){
-          dataset = TDBFactory.createDataset( STORE ) ;
-          // now create a reasoning model using this base
-          model = ModelFactory.createOntologyModel( OntModelSpec.OWL_MEM_MICRO_RULE_INF, dataset.getNamedModel( UNION_GRAPH ) );
-        }else{
-          dataset = TDBFactory.assembleDataset(STORE_ASSEMBLER) ;
-          // now create a reasoning model using this base
-          model = ModelFactory.createOntologyModel( OntModelSpec.OWL_MEM_MICRO_RULE_INF, dataset.getNamedModel( UNION_GRAPH ) );
+        if (USE_TDB_ASSEMBLER) {
+            dataset = TDBFactory.assembleDataset(STORE_ASSEMBLER);
+            // now create a reasoning model using this base
+            model = ModelFactory.createOntologyModel(OntModelSpec.OWL_MEM_MICRO_RULE_INF, dataset.getNamedModel(UNION_GRAPH));
+        } else {
+            dataset = TDBFactory.createDataset(STORE);
+            // now create a reasoning model using this base
+            model = ModelFactory.createOntologyModel(OntModelSpec.OWL_MEM_MICRO_RULE_INF, dataset.getNamedModel(UNION_GRAPH));
         }
 
-        dataset.begin(ReadWrite.WRITE) ;
+        dataset.begin(ReadWrite.WRITE);
 
         try {
 //          //Model model = m ;
@@ -80,48 +81,73 @@ public final class LoadAndQuery {
 //          Individual aliceIndividual = model.createIndividual(alice);
 //          Individual bobIndividiual = model.createIndividual(bob);
 //          model.add(aliceIndividual, knows, bobIndividiual);
-//
-//          //model.add(model.createStatement(alice, Rex.hasOriginalText, bob));
-//
-//
-          // A SPARQL query will see the new statement added.
-          try (QueryExecution qExec = QueryExecutionFactory.create(
-            "SELECT (count(*) AS ?count) { ?s ?p ?o} LIMIT 10",
-            dataset)) {
-            ResultSet rs = qExec.execSelect() ;
-            ResultSetFormatter.out(rs) ;
-          }
-//
-          // ... perform a SPARQL Update
 
-          String sparqlUpdateString = StrUtils.strjoinNL(
-            "PREFIX : <http://example/>",
-            "INSERT { :s :p ?now } WHERE { BIND(now() AS ?now) }"
-          ) ;
+            //model.add(model.createStatement(alice, Rex.hasOriginalText, bob));
+//
+//
+            // A SPARQL query will see the new statement added.
+            try (QueryExecution qExec = QueryExecutionFactory.create(
+                    "SELECT (count(*) AS ?count) { ?s ?p ?o} LIMIT 10",
+                    dataset)) {
+                ResultSet rs = qExec.execSelect();
+                ResultSetFormatter.out(rs);
+            }
+
+            // A SPARQL query will see the new statement added.
+            try (QueryExecution qExec = QueryExecutionFactory.create(
+                    "SELECT (count(*) AS ?count) {{ ?s ?p ?o} UNION { GRAPH ?g { ?s ?p ?o }}} LIMIT 10",
+                    dataset)) {
+                ResultSet rs = qExec.execSelect();
+                ResultSetFormatter.out(rs);
+            }
+
+            try (QueryExecution qExec = QueryExecutionFactory.create(
+                    "SELECT *  {\n" +
+                            "    { ?s ?p ?o } UNION { GRAPH ?g { ?s ?p ?o } }\n" +
+                            "} LIMIT 5250",
+                    dataset)) {
+                ResultSet rs = qExec.execSelect();
+                ResultSetFormatter.out(rs);
+            }
+            try (QueryExecution qExec = QueryExecutionFactory.create(
+                    "SELECT *  {\n" +
+                            "    { ?s ?p ?o } UNION { GRAPH ?g { ?s ?p ?o } }\n" +
+                            "} LIMIT 500",
+                    dataset)) {
+                ResultSet rs = qExec.execSelect();
+                ResultSetFormatter.out(rs);
+            }
+//
+            // ... perform a SPARQL Update
+
+            String sparqlUpdateString = StrUtils.strjoinNL(
+                    "PREFIX : <http://example2/>",
+                    "INSERT { :s :p ?now } WHERE { BIND(now() AS ?now) }"
+            );
 ////
-          UpdateRequest request = UpdateFactory.create(sparqlUpdateString) ;
-          UpdateProcessor proc = UpdateExecutionFactory.create(request, dataset) ;
-          proc.execute() ;
+            UpdateRequest request = UpdateFactory.create(sparqlUpdateString);
+            UpdateProcessor proc = UpdateExecutionFactory.create(request, dataset);
+            proc.execute();
 
-          // Finally, commit the transaction.
-          dataset.commit() ;
-          // Or call .abort()
+            // Finally, commit the transaction.
+            dataset.commit();
+            // Or call .abort()
         } finally {
-          dataset.end() ;
+            dataset.end();
         }
 
 
         String query = MessageFormat.format("SELECT ?x  where '{' ?x <{0}> \"{1}\" '}'",
-          Rex.hasOriginalText,
-          "Fredrick Chopin");
+                Rex.hasOriginalText,
+                "Fredrick Chopin");
 
         // Report results
         System.out.println(query);
         System.out.println("----");
 
-        List<Resource> results = resourcesThatMatchQuery( query, "x", model );
-        for (Resource r: results) {
-            System.out.println( r );
+        List<Resource> results = resourcesThatMatchQuery(query, "x", model);
+        for (Resource r : results) {
+            System.out.println(r);
         }
 
         System.out.println("----");
@@ -132,22 +158,21 @@ public final class LoadAndQuery {
      * which are the values of the bound variable <code>queryVar</code>
      *
      * @param queryString SPARQL query string
-     * @param queryVar Result variable to extract
-     * @param m Model to query
+     * @param queryVar    Result variable to extract
+     * @param m           Model to query
      * @return List of resources matching the query. Non-null, but may be empty
      */
-    public static List<Resource> resourcesThatMatchQuery( String queryString, String queryVar, Model m ) {
+    public static List<Resource> resourcesThatMatchQuery(String queryString, String queryVar, Model m) {
         List<Resource> results = new ArrayList<Resource>();
 
-        QueryExecution qexec = QueryExecutionFactory.create( queryString, m );
+        QueryExecution qexec = QueryExecutionFactory.create(queryString, m);
         try {
             ResultSet queryResults = qexec.execSelect();
             while (queryResults.hasNext()) {
                 QuerySolution soln = queryResults.nextSolution();
-                results.add( soln.getResource(queryVar) );
+                results.add(soln.getResource(queryVar));
             }
-        }
-        finally {
+        } finally {
             qexec.close();
         }
         return results;

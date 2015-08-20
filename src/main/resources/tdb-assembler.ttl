@@ -9,5 +9,5 @@ tdb:GraphTDB    rdfs:subClassOf  ja:Model      .
 
 <#dataset> rdf:type         tdb:DatasetTDB ;
     tdb:location "target/tdb" ;
-    tdb:unionDefaultGraph false ;
+    tdb:unionDefaultGraph true ;
     .
