@@ -1,5 +1,5 @@
 1. Download Apache Jena https://jena.apache.org/download/index.cgi
-2. Make shure java-8 is installed
+2. Make sure java-8 is installed
 3. Setup scripts https://jena.apache.org/documentation/tdb/commands.html
 -data=/jena-tdb-ont-example/target/tdb
 -source=/jena-tdb-ont-example/src/main/resources
