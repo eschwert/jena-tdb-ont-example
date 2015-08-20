@@ -19,16 +19,23 @@
 
 package org.apache.jena.examples.tdbont;
 
-import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.List;
-
+import org.apache.jena.atlas.lib.StrUtils;
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.OntModelSpec;
 import org.apache.jena.query.*;
-import org.apache.jena.rdf.model.*;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.tdb.TDB;
 import org.apache.jena.tdb.TDBFactory;
+import org.apache.jena.update.UpdateExecutionFactory;
+import org.apache.jena.update.UpdateFactory;
+import org.apache.jena.update.UpdateProcessor;
+import org.apache.jena.update.UpdateRequest;
+
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  *
@@ -36,25 +43,83 @@ import org.apache.jena.tdb.TDBFactory;
 public final class LoadAndQuery {
     public static final String STORE = "target/tdb";
 
+    public static final Boolean USE_TDB_ASSEMBLER = true;
+    public static final String STORE_ASSEMBLER = "src/main/resources/tdb-assembler.ttl";
+
     public static final String UNION_GRAPH = "urn:x-arq:UnionGraph";
+    public static final String DEFAULT_GRAPH = "urn:x-arq:DefaultGraph";
 
     public static void main(String[] args) {
         // the base dataset
         TDB.getContext().set( TDB.symUnionDefaultGraph, true );
-        Dataset dataset = TDBFactory.createDataset( STORE ) ;
+        Dataset dataset;
+        //Dataset datasetFromAssembler = TDBFactory.assembleDataset(STORE_ASSEMBLER) ;
 
-        // now create a reasoning model using this base
-        OntModel m = ModelFactory.createOntologyModel( OntModelSpec.OWL_MEM_MICRO_RULE_INF, dataset.getNamedModel( UNION_GRAPH ) );
+        OntModel model = null;
+        if(USE_TDB_ASSEMBLER){
+          dataset = TDBFactory.createDataset( STORE ) ;
+          // now create a reasoning model using this base
+          model = ModelFactory.createOntologyModel( OntModelSpec.OWL_MEM_MICRO_RULE_INF, dataset.getNamedModel( UNION_GRAPH ) );
+        }else{
+          dataset = TDBFactory.assembleDataset(STORE_ASSEMBLER) ;
+          // now create a reasoning model using this base
+          model = ModelFactory.createOntologyModel( OntModelSpec.OWL_MEM_MICRO_RULE_INF, dataset.getNamedModel( UNION_GRAPH ) );
+        }
 
-        String query = MessageFormat.format( "SELECT ?x  where '{' ?x <{0}> \"{1}\" '}'",
-                                             Rex.hasOriginalText,
-                                             "Fredrick Chopin");
+        dataset.begin(ReadWrite.WRITE) ;
+
+        try {
+//          //Model model = m ;
+//          // API calls to a model in the dataset
+//
+//
+//          Resource alice = model.createResource("http://example.com/alice");
+//          Property knows = model.createProperty("http://xmlns.com/foaf/0.1/knows");
+//          Resource bob = model.createResource("http://example.com/bob");
+//
+//          Individual aliceIndividual = model.createIndividual(alice);
+//          Individual bobIndividiual = model.createIndividual(bob);
+//          model.add(aliceIndividual, knows, bobIndividiual);
+//
+//          //model.add(model.createStatement(alice, Rex.hasOriginalText, bob));
+//
+//
+          // A SPARQL query will see the new statement added.
+          try (QueryExecution qExec = QueryExecutionFactory.create(
+            "SELECT (count(*) AS ?count) { ?s ?p ?o} LIMIT 10",
+            dataset)) {
+            ResultSet rs = qExec.execSelect() ;
+            ResultSetFormatter.out(rs) ;
+          }
+//
+          // ... perform a SPARQL Update
+
+          String sparqlUpdateString = StrUtils.strjoinNL(
+            "PREFIX : <http://example/>",
+            "INSERT { :s :p ?now } WHERE { BIND(now() AS ?now) }"
+          ) ;
+////
+          UpdateRequest request = UpdateFactory.create(sparqlUpdateString) ;
+          UpdateProcessor proc = UpdateExecutionFactory.create(request, dataset) ;
+          proc.execute() ;
+
+          // Finally, commit the transaction.
+          dataset.commit() ;
+          // Or call .abort()
+        } finally {
+          dataset.end() ;
+        }
+
+
+        String query = MessageFormat.format("SELECT ?x  where '{' ?x <{0}> \"{1}\" '}'",
+          Rex.hasOriginalText,
+          "Fredrick Chopin");
 
         // Report results
         System.out.println(query);
         System.out.println("----");
 
-        List<Resource> results = resourcesThatMatchQuery( query, "x", m );
+        List<Resource> results = resourcesThatMatchQuery( query, "x", model );
         for (Resource r: results) {
             System.out.println( r );
         }
