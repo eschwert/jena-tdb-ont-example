@@ -18,8 +18,8 @@
  */
 
 package org.apache.jena.examples.tdbont; 
-import com.hp.hpl.jena.rdf.model.*;
-import com.hp.hpl.jena.ontology.*;
+import org.apache.jena.rdf.model.*;
+import org.apache.jena.ontology.*;
  
 /**
  * Vocabulary definitions from /Users/benson/x/oap/common/src/main/resources/com/basistech/jug/ontologies/rex.owl 

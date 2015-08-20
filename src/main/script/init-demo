@@ -4,12 +4,12 @@
 # $TDBROOT/bin to be on the $PATH for the shell
 
 # Preconditions
-[ -n "${TDBROOT+1}" ] || { echo "Please ensure the TDBROOT environment variable is correctly set" ; exit 1 ; }
-command -v tdbloader >/dev/null || { echo "tdbloader does not appear to be on the path for this shell" ; echo "Please ensure \$PATH contains \$TDBROOT/bin" ; exit 1; }
+#[ -n "${TDBROOT+1}" ] || { echo "Please ensure the TDBROOT environment variable is correctly set" ; exit 1 ; }
+#command -v tdbloader >/dev/null || { echo "tdbloader does not appear to be on the path for this shell" ; echo "Please ensure \$PATH contains \$TDBROOT/bin" ; exit 1; }
 
 # handy constants
-data=target/tdb
-source=src/main/resources
+data=/home/eschwert/Entwicklung/Soft/Book/jena-tdb-ont-example/target/tdb
+source=/home/eschwert/Entwicklung/Soft/Book/jena-tdb-ont-example/src/main/resources
 
 # Create the data directory and ensure it's empty
 mkdir -p $data
